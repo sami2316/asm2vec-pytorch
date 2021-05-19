@@ -8,7 +8,7 @@ def cosine_similarity(v1, v2):
 
 @click.command()
 @click.option('-i1', '--input1', 'ipath1', help='target function 1', required=True)
-@click.option('-i2', '--input2', 'ipath2', help='target function 2', required=True)
+@click.option('-i2', '--input2', 'ipath2', help='target function 2', required=False)
 @click.option('-m', '--model', 'mpath', help='model path', required=True)
 @click.option('-e', '--epochs', default=10, help='training epochs', show_default=True)
 @click.option('-c', '--device', default='auto', help='hardware device to be used: cpu / cuda / auto', show_default=True)
@@ -19,9 +19,9 @@ def cli(ipath1, ipath2, mpath, epochs, device, lr):
 
     # load model, tokens
     model, tokens = asm2vec.utils.load_model(mpath, device=device)
-    functions, tokens_new = asm2vec.utils.load_data([ipath1, ipath2])
+    functions, tokens_new = asm2vec.utils.load_data(ipath1, limit=100)
     tokens.update(tokens_new)
-    model.update(2, tokens.size())
+    model.update(len(functions), tokens.size())
     model = model.to(device)
     
     # train function embedding
@@ -35,10 +35,12 @@ def cli(ipath1, ipath2, mpath, epochs, device, lr):
         learning_rate=lr
     )
 
+    print(len(functions))
     # compare 2 function vectors
-    v1, v2 = model.to('cpu').embeddings_f(torch.tensor([0, 1]))
+    v1 = model.to('cpu').embeddings_f(torch.tensor([0]))
 
-    print(f'cosine similarity : {cosine_similarity(v1, v2):.6f}')
+    print(v1, type(v1))
+    #print(f'cosine similarity : {cosine_similarity(v1, v2):.6f}')
 
 if __name__ == '__main__':
     cli()

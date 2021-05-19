@@ -17,7 +17,7 @@ import asm2vec
 def cli(ipath, opath, mpath, limit, embedding_size, batch_size, epochs, neg_sample_num, calc_acc, device, lr):
     if device == 'auto':
         device = 'cuda' if torch.cuda.is_available() else 'cpu'
-    
+
     if mpath:
         model, tokens = asm2vec.utils.load_model(mpath, device=device)
         functions, tokens_new = asm2vec.utils.load_data(ipath, limit=limit)

@@ -1,10 +1,22 @@
 import os
 import time
 import torch
+import logger
 from torch.utils.data import DataLoader, Dataset
 from pathlib import Path
 from .datatype import Tokens, Function, Instruction
 from .model import ASM2VEC
+import _pickle as cPickle
+
+logger = logger.get_logger("Utils")
+
+def _unpickle_from_fp(fp):
+    try:
+        data = cPickle.load(fp)
+    except:
+        data = None
+
+    return data
 
 class AsmDataset(Dataset):
     def __init__(self, x, y):
@@ -15,10 +27,11 @@ class AsmDataset(Dataset):
     def __getitem__(self, index):
         return self.x[index], self.y[index]
 
-def load_data(paths, limit=None):
+def load_data(paths, limit=None, full=False):
+    logger.info("Loading Assembly data from :%s" % paths)
     if type(paths) is not list:
         paths = [paths]
-   
+
     filenames = []
     for path in paths:
         if os.path.isdir(path):
@@ -26,16 +39,26 @@ def load_data(paths, limit=None):
         else:
             filenames += [Path(path)]
     
-    functions, tokens = [], Tokens()
-    for i, filename in enumerate(filenames):
-        if limit and i >= limit:
-            break
-        with open(filename) as f:
-            fn = Function.load(f.read())
-            functions.append(fn)
-            tokens.add(fn.tokens())
+    names, functions, tokens = [], [], Tokens()
+    for filename in filenames:
+        i = 0
+        with open(filename, 'rb') as fp:
+            data = _unpickle_from_fp(fp)
+            while data is not None:
+                fn = Function.load(data[1])
+                names.append(data[0])
+                functions.append(fn)
+                tokens.add(fn.tokens())
+                data = _unpickle_from_fp(fp)
+                i+=1
+
+                if limit is not None and i >= limit:
+                    break
     
-    return functions, tokens
+    if full:
+        return names, functions, tokens
+    else:
+        return functions, tokens
 
 def preprocess(functions, tokens):
     x, y = [], []
@@ -61,6 +84,7 @@ def train(
     learning_rate=0.02
 ):
     if mode == 'train':
+        logger.info("Training....")
         if model is None:
             model = ASM2VEC(tokens.size(), function_size=len(functions), embedding_size=embedding_size).to(device)
         optimizer = torch.optim.Adam(model.parameters(), lr=learning_rate)
@@ -71,6 +95,7 @@ def train(
     else:
         raise ValueError("Unknown mode")
 
+    logger.info("Loading data for Training...")
     loader = DataLoader(AsmDataset(*preprocess(functions, tokens)), batch_size=batch_size, shuffle=True)
     for epoch in range(epochs):
         start = time.time()

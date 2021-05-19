@@ -121,66 +121,22 @@ Options:
 python train.py -i asm/ -o model.pt --epoch 100
 ```
 
-### test.py
+### diff.py
 
 ```
-Usage: test.py [OPTIONS]
+Usage: diff.py [OPTIONS]
 
 Options:
-  -i, --input TEXT              target function  [required]
-  -m, --model TEXT              model path  [required]
-  -e, --epochs INTEGER          training epochs  [default: 10]
-  -n, --neg-sample-num INTEGER  negative sampling amount  [default: 25]
-  -l, --limit INTEGER           limit the amount of output probability result
-  -c, --device TEXT             hardware device to be used: cpu / cuda / auto
-                                [default: auto]
+  -d1, --database1_dir TEXT             database 1 path  [required]
+  -d2, --database2_dir TEXT             database 2 path  [required]
+  -r, --results_dir TEXT                output path  [required]
+  -m, --model TEXT                      model path  [required]
 
-  -lr, --learning-rate FLOAT    learning rate  [default: 0.02]
-  -p, --pretty                  pretty print table  [default: False]
-  --help                        Show this message and exit.
 ```
 
 ```bash
 # Example
-python test.py -i asm/123456 -m model.pt
+python diff.py -d1 asm/<path> -d2 asm/<path> -r asm/results/ -m model.pt
 ```
 
-```
-┌──────────────────────────────────────────┐
-│    endbr64                               │
-│  ➔ push r15                              │
-│    push r14                              │
-├────────┬─────────────────────────────────┤
-│ 34.68% │ [rdx + rsi*CONST + CONST]       │
-│ 20.29% │ push                            │
-│ 16.22% │ r15                             │
-│ 04.36% │ r14                             │
-│ 03.55% │ r11d                            │
-└────────┴─────────────────────────────────┘
-```
 
-### compare.py
-
-```
-Usage: compare.py [OPTIONS]
-
-Options:
-  -i1, --input1 TEXT          target function 1  [required]
-  -i2, --input2 TEXT          target function 2  [required]
-  -m, --model TEXT            model path  [required]
-  -e, --epochs INTEGER        training epochs  [default: 10]
-  -c, --device TEXT           hardware device to be used: cpu / cuda / auto
-                              [default: auto]
-
-  -lr, --learning-rate FLOAT  learning rate  [default: 0.02]
-  --help                      Show this message and exit.
-```
-
-```bash
-# Example
-python compare.py -i1 asm/123456 -i2 asm/654321 -m model.pt -e 30
-```
-
-```
-cosine similarity : 0.873684
-```

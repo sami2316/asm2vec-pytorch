@@ -1,10 +1,10 @@
-#!/usr/bin/env python3
 import re
 import os
 import click
 import r2pipe
 import hashlib
 from pathlib import Path
+import _pickle as cPickle
 
 def sha3(data):
     return hashlib.sha3_256(data.encode()).hexdigest()
@@ -55,28 +55,32 @@ def fn2asm(pdf, minlen):
     return output
 
 def bin2asm(filename, opath, minlen):
-    # check
-    if not validEXE(filename):
-        return 0
-    
+    #
+    # Create directory where results will be written to.
+    #
+    results_dir = os.path.join(opath, os.path.basename(filename))
+    if not os.access(results_dir, os.F_OK):
+        os.makedirs(results_dir)
+
     r = r2pipe.open(str(filename))
     r.cmd('aaaa')
 
     count = 0
 
+    fp = open("%s/fv.pcl" % (results_dir), 'wb')
     for fn in r.cmdj('aflj'):
         r.cmd(f's {fn["offset"]}')
         asm = fn2asm(r.cmdj('pdfj'), minlen)
         if asm:
-            uid = sha3(asm)
-            asm = f''' .name {fn["name"]}
- .offset {fn["offset"]:016x}
- .file {filename.name}
-''' + asm
-            with open(opath / uid, 'w') as f:
-                f.write(asm)
-                count += 1
+            fv = [
+                fn["name"],
+                asm
+                 ]
 
+            cPickle.dump(fv, fp)
+            count += 1
+
+    fp.close()
     print(f'[+] {filename}')
 
     return count
@@ -84,7 +88,7 @@ def bin2asm(filename, opath, minlen):
 @click.command()
 @click.option('-i', '--input', 'ipath', help='input directory / file', required=True)
 @click.option('-o', '--output', 'opath', default='asm', help='output directory')
-@click.option('-l', '--len', 'minlen', default=10, help='ignore assembly code with instructions amount smaller than minlen')
+@click.option('-l', '--len', 'minlen', default=1, help='ignore assembly code with instructions amount smaller than minlen')
 def cli(ipath, opath, minlen):
     '''
     Extract assembly functions from binary executable
